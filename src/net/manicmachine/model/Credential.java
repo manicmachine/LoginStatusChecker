@@ -4,21 +4,21 @@ public class Credential {
     private String credName;
     private String username;
     private String password;
-    private String credText;
+    private String credPattern;
     private CredType credType;
 
-    public Credential (String credName, String username, String password, String credText, CredType credType) {
+    public Credential (String credName, String username, String password, String credPattern, CredType credType) {
         this.credName = credName;
         this.username = username;
         this.password = password;
-        this.credText = credText;
+        this.credPattern = credPattern;
         this.credType = credType;
     }
 
     // TODO: Remove this override, only here for testing.
     @Override
     public String toString() {
-        return "CredName: " + this.credName + ", Username: " + this.username + "CredText: " + this.credText + "CredType: " + this.credType.toString();
+        return "CredName: " + this.credName + ", Username: " + this.username + ", CredText: " + this.credPattern + ", CredType: " + this.credType.toString();
     }
 
     public String getCredName() {
@@ -45,12 +45,12 @@ public class Credential {
         this.password = password;
     }
 
-    public String getCredText() {
-        return credText;
+    public String getCredPattern() {
+        return credPattern;
     }
 
-    public void setCredText(String credText) {
-        this.credText = credText;
+    public void setCredPattern(String credPattern) {
+        this.credPattern = credPattern;
     }
 
     public CredType getCredType() {

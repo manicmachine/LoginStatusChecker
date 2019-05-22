@@ -97,7 +97,7 @@ public class CipherManager {
             json_credential.add("credName", credential.getCredName())
                     .add("username", credential.getUsername())
                     .add("password", credential.getPassword())
-                    .add("credText", credential.getCredText())
+                    .add("credPattern", credential.getCredPattern())
                     .add("credType", credential.getCredType().toString());
             json_credentials.add(json_credential);
         }
@@ -116,7 +116,7 @@ public class CipherManager {
                         jsonValue.asObject().getString("credName", "Unknown"),
                         jsonValue.asObject().getString("username", "Unknown"),
                         jsonValue.asObject().getString("password", "Unknown"),
-                        jsonValue.asObject().getString("credText", "Unknown"),
+                        jsonValue.asObject().getString("credPattern", "Unknown"),
                         CredType.valueOf(jsonValue.asObject().getString("credType", "OU")));
 
                 credentials.add(credential);
