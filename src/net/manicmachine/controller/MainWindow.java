@@ -36,6 +36,7 @@ public class MainWindow extends Application {
         primaryStage.setOnCloseRequest((event) -> {
             mainController.closePsSession();
             mainController.closeThreadPool();
+            mainController.storeCredentials();
         });
     }
 

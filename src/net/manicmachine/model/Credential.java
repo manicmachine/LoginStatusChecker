@@ -15,6 +15,12 @@ public class Credential {
         this.credType = credType;
     }
 
+    // TODO: Remove this override, only here for testing.
+    @Override
+    public String toString() {
+        return "CredName: " + this.credName + ", Username: " + this.username + "CredText: " + this.credText + "CredType: " + this.credType.toString();
+    }
+
     public String getCredName() {
         return credName;
     }

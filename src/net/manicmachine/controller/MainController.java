@@ -42,6 +42,7 @@ public class MainController implements Initializable {
     private ExecutorService threadPool;
     private PsSessionListener psSessionListener;
     private ComputerChecker computerChecker;
+    private CipherManager cipherManager;
     private boolean monitorRunning = false;
 
     @Override
@@ -97,23 +98,9 @@ public class MainController implements Initializable {
             }
 
             // TODO: Change 'secretKey' to a master password provided by the user
-            CipherManager cipherManager = new CipherManager(credFile, "test");
-            if (credFile.exists() && credFile.isFile()) {
-                // Decrypt and load credentials
-                cipherManager.decrypt();
-            } else {
-                // TODO: Move encryption to it's own function to be invoked when app is closed via MainWindow
-                // Test
-                ArrayList<Credential> credentials = new ArrayList<>();
-                Credential credential_1 = new Credential("test", "sathercd3383-lab", "test", "lab machines", CredType.PATTERN);
-                Credential credential_2 = new Credential("another", "sathercd3383-srv", "test", "srv machines", CredType.OU);
+            cipherManager = new CipherManager(credFile, "test");
+            System.out.println(cipherManager.decrypt().toString());
 
-                credentials.add(credential_1);
-                credentials.add(credential_2);
-
-                cipherManager.encrypt(credentials);
-                // End test
-            }
         } catch (IOException e) {
             System.out.println(e.getMessage());
         }
@@ -152,6 +139,22 @@ public class MainController implements Initializable {
 
     public void closeThreadPool() {
         threadPool.shutdownNow();
+    }
+
+    public void storeCredentials() {
+        ArrayList<Credential> credentials = new ArrayList<>();
+        Credential credential_1 = new Credential("test", "sathercd3383-lab", "test", "lab machines", CredType.PATTERN);
+        Credential credential_2 = new Credential("another", "sathercd3383-srv", "test", "srv machines", CredType.OU);
+
+        credentials.add(credential_1);
+        credentials.add(credential_2);
+
+        try {
+            cipherManager.encrypt(credentials);
+        } catch (Exception e) {
+            System.out.println("An error occurred while encrypting credentials: " + e.getMessage());
+            System.out.println("Quitting without storing credentials.");
+        }
     }
 
     // TODO: Edit this to process the selected file and add the extracted devices to the monitor queue

@@ -1,7 +1,10 @@
 package net.manicmachine.controller;
 
+import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
+import com.eclipsesource.json.JsonValue;
+import net.manicmachine.model.CredType;
 import net.manicmachine.model.Credential;
 
 import javax.crypto.Cipher;
@@ -42,6 +45,7 @@ public class CipherManager {
         ivspec = new IvParameterSpec(iv);
 
         try {
+            // Configure Cipher for AES-256
             factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
             spec = new PBEKeySpec(secretKey.toCharArray(), salt.getBytes(), 65536, 256);
             tmpSecret = factory.generateSecret(spec);
@@ -56,6 +60,36 @@ public class CipherManager {
 
     public void encrypt(ArrayList<Credential> credentials) throws IOException {
         // Store credentials as a JSON object for simpler parsing on launch
+        String json_credentials = convertToJsonString(credentials);
+        BufferedWriter writer = new BufferedWriter(new FileWriter(credFile));
+
+        try {
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
+            String encryptedText = Base64.getEncoder().encodeToString(cipher.doFinal(json_credentials.getBytes("UTF-8")));
+
+            writer.write(encryptedText);
+            writer.close();
+        } catch (Exception e) {
+            System.out.println("Error while encrypting credentials: " + e.toString());
+        }
+    }
+
+    public ArrayList<Credential> decrypt() throws IOException {
+        ArrayList<Credential> credentials = new ArrayList<>();
+        String encryptedText = new String(Files.readAllBytes(Paths.get(credFile.toString())));
+
+        try {
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivspec);
+            String decryptedText = new String(cipher.doFinal(Base64.getDecoder().decode(encryptedText)));
+            credentials = convertJsonToCreds(decryptedText);
+        } catch (Exception e) {
+            System.out.println("Error while decrypting credentials: " + e.toString());
+        }
+
+        return credentials;
+    }
+
+    private String convertToJsonString(ArrayList<Credential> credentials) {
         JsonArray json_credentials = new JsonArray();
 
         for (Credential credential: credentials) {
@@ -68,30 +102,27 @@ public class CipherManager {
             json_credentials.add(json_credential);
         }
 
-        BufferedWriter writer = new BufferedWriter(new FileWriter(credFile));
-
-        try {
-            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
-            String encryptedText = Base64.getEncoder().encodeToString(cipher.doFinal(json_credentials.toString().getBytes("UTF-8")));
-
-            writer.write(encryptedText);
-            writer.close();
-        } catch (Exception e) {
-            System.out.println("Error while encrypting: " + e.toString());
-        }
+        return json_credentials.toString();
     }
 
-    public void decrypt() throws IOException {
-        String decryptedText = "";
-        String encryptedText = new String(Files.readAllBytes(Paths.get(credFile.toString())));
+    private ArrayList<Credential> convertJsonToCreds(String jsonString) {
+        ArrayList<Credential> credentials = new ArrayList<>();
 
-        try {
-            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivspec);
-            decryptedText = new String(cipher.doFinal(Base64.getDecoder().decode(encryptedText)));
-        } catch (Exception e) {
-            System.out.println("Error while encrypting: " + e.toString());
+        if (!jsonString.isEmpty()) {
+            JsonArray jsonArray = Json.parse(jsonString).asArray();
+
+            for (JsonValue jsonValue : jsonArray) {
+                Credential credential = new Credential(
+                        jsonValue.asObject().getString("credName", "Unknown"),
+                        jsonValue.asObject().getString("username", "Unknown"),
+                        jsonValue.asObject().getString("password", "Unknown"),
+                        jsonValue.asObject().getString("credText", "Unknown"),
+                        CredType.valueOf(jsonValue.asObject().getString("credType", "OU")));
+
+                credentials.add(credential);
+            }
         }
 
-        System.out.println(decryptedText);
+        return credentials;
     }
 }
