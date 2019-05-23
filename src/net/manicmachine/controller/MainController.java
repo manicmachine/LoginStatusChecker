@@ -4,10 +4,14 @@ import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import net.manicmachine.model.Computer;
 import net.manicmachine.model.CredType;
 import net.manicmachine.model.Credential;
@@ -16,6 +20,7 @@ import java.io.File;
 import java.net.URL;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -43,6 +48,7 @@ public class MainController implements Initializable {
     private PsSessionListener psSessionListener;
     private ComputerChecker computerChecker;
     private CipherManager cipherManager;
+    private CredentialManager credentialManager;
     private boolean monitorRunning = false;
 
     @Override
@@ -142,12 +148,12 @@ public class MainController implements Initializable {
     }
 
     public void storeCredentials() {
-        ArrayList<Credential> credentials = new ArrayList<>();
+        HashMap<String, Credential> credentials = new HashMap<>();
         Credential credential_1 = new Credential("test", "sathercd3383-lab", "test", "lab machines", CredType.PATTERN);
         Credential credential_2 = new Credential("another", "sathercd3383-srv", "test", "srv machines", CredType.OU);
 
-        credentials.add(credential_1);
-        credentials.add(credential_2);
+        credentials.put(credential_1.getCredName(), credential_1);
+        credentials.put(credential_2.getCredName(), credential_2);
 
         try {
             cipherManager.encrypt(credentials);
@@ -200,6 +206,7 @@ public class MainController implements Initializable {
         }
     }
 
+    // Button actions
     @FXML private void beginMonitoring() {
         monitorRunning = true;
         NetworkWorker networkWorker;
@@ -225,7 +232,24 @@ public class MainController implements Initializable {
         System.out.println("Connecting remotely too: " + resultsList.getSelectionModel().getSelectedItem().getIdentifier());
     }
 
-    @FXML private void openCredentialWindow() {
+    // Menu Actions
+    @FXML private void closeApplication() {
+        stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+    }
 
+    @FXML private void openCredentialManager() {
+        Parent root;
+        try {
+            root = FXMLLoader.load(getClass().getResource("../view/CredentialManager.fxml"));
+            Stage stage = new Stage();
+            stage.setTitle("Credential Manager");
+            stage.setScene(new Scene(root,600, 400));
+            stage.show();
+        } catch (IOException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Unable to open Credential Manager");
+            alert.setContentText("Unable to open Credential Manager: " + e.getMessage());
+            alert.show();
+        }
     }
 }

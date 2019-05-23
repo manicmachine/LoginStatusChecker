@@ -18,8 +18,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.spec.KeySpec;
-import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 public class CipherManager {
 
@@ -58,7 +59,7 @@ public class CipherManager {
 
     }
 
-    public void encrypt(ArrayList<Credential> credentials) throws IOException {
+    public void encrypt(HashMap<String, Credential> credentials) throws IOException {
         // Store credentials as a JSON object for simpler parsing on launch
         String json_credentials = convertToJsonString(credentials);
         BufferedWriter writer = new BufferedWriter(new FileWriter(credFile));
@@ -74,8 +75,8 @@ public class CipherManager {
         }
     }
 
-    public ArrayList<Credential> decrypt() throws IOException {
-        ArrayList<Credential> credentials = new ArrayList<>();
+    public HashMap<String, Credential> decrypt() throws IOException {
+        HashMap<String, Credential> credentials = new HashMap<>();
         String encryptedText = new String(Files.readAllBytes(Paths.get(credFile.toString())));
 
         try {
@@ -89,24 +90,24 @@ public class CipherManager {
         return credentials;
     }
 
-    private String convertToJsonString(ArrayList<Credential> credentials) {
+    private String convertToJsonString(HashMap<String, Credential> credentials) {
         JsonArray json_credentials = new JsonArray();
 
-        for (Credential credential: credentials) {
+        for (Map.Entry<String, Credential> credential: credentials.entrySet()) {
             JsonObject json_credential = new JsonObject();
-            json_credential.add("credName", credential.getCredName())
-                    .add("username", credential.getUsername())
-                    .add("password", credential.getPassword())
-                    .add("credPattern", credential.getCredPattern())
-                    .add("credType", credential.getCredType().toString());
+            json_credential.add("credName", credential.getValue().getCredName())
+                    .add("username", credential.getValue().getUsername())
+                    .add("password", credential.getValue().getPassword())
+                    .add("credPattern", credential.getValue().getCredPattern())
+                    .add("credType", credential.getValue().getCredType().toString());
             json_credentials.add(json_credential);
         }
 
         return json_credentials.toString();
     }
 
-    private ArrayList<Credential> convertJsonToCreds(String jsonString) {
-        ArrayList<Credential> credentials = new ArrayList<>();
+    private HashMap<String, Credential> convertJsonToCreds(String jsonString) {
+        HashMap<String, Credential> credentials = new HashMap<>();
 
         if (!jsonString.isEmpty()) {
             JsonArray jsonArray = Json.parse(jsonString).asArray();
@@ -119,7 +120,7 @@ public class CipherManager {
                         jsonValue.asObject().getString("credPattern", "Unknown"),
                         CredType.valueOf(jsonValue.asObject().getString("credType", "OU")));
 
-                credentials.add(credential);
+                credentials.put(credential.getCredName(), credential);
             }
         }
 

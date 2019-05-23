@@ -23,7 +23,7 @@
           <Menu mnemonicParsing="false" text="File">
             <items>
                 <MenuItem fx:id="fileOpenMenu" mnemonicParsing="false" onAction="#openFileChooser" text="Open" />
-                <MenuItem fx:id="fileCloseMenu" mnemonicParsing="false" text="Close" />
+                <MenuItem fx:id="fileCloseMenu" mnemonicParsing="false" onAction="#closeApplication" text="Close" />
             </items>
           </Menu>
           <Menu mnemonicParsing="false" text="Config">
@@ -34,7 +34,7 @@
                         <CheckMenuItem fx:id="configEmailToggle" mnemonicParsing="false" text="Send Email" />
                      </items>
                   </Menu>
-              <MenuItem fx:id="configCredsMenu" mnemonicParsing="false" onAction="#openCredentialWindow" text="Credentials" />
+              <MenuItem fx:id="configCredsMenu" mnemonicParsing="false" onAction="#openCredentialManager" text="Credentials" />
                   <MenuItem fx:id="configRemoteMenu" mnemonicParsing="false" text="Remote Access" />
                   <MenuItem fx:id="configEmailMenu" mnemonicParsing="false" text="Email" />
             </items>
