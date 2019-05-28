@@ -7,9 +7,7 @@ import com.eclipsesource.json.JsonValue;
 import net.manicmachine.model.CredType;
 import net.manicmachine.model.Credential;
 
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
+import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -17,6 +15,8 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
 import java.security.spec.KeySpec;
 import java.util.Base64;
 import java.util.HashMap;
@@ -75,7 +75,7 @@ public class CipherManager {
         }
     }
 
-    public HashMap<String, Credential> decrypt() throws IOException {
+    public HashMap<String, Credential> decrypt() throws IOException, BadPaddingException {
         HashMap<String, Credential> credentials = new HashMap<>();
         String encryptedText = new String(Files.readAllBytes(Paths.get(credFile.toString())));
 
@@ -83,10 +83,12 @@ public class CipherManager {
             cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivspec);
             String decryptedText = new String(cipher.doFinal(Base64.getDecoder().decode(encryptedText)));
             credentials = convertJsonToCreds(decryptedText);
-        } catch (Exception e) {
-            System.out.println("Error while decrypting credentials: " + e.toString());
+        } catch (InvalidKeyException | InvalidAlgorithmParameterException | IllegalBlockSizeException e) {
+            System.out.println("Error while decrypting credentials: " + e.getMessage());
         }
 
+        //REMOVE ME
+        System.out.println(credentials);
         return credentials;
     }
 

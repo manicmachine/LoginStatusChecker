@@ -9,6 +9,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.Pane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -16,11 +17,13 @@ import net.manicmachine.model.Computer;
 import net.manicmachine.model.CredType;
 import net.manicmachine.model.Credential;
 
+import javax.crypto.BadPaddingException;
 import java.io.File;
 import java.net.URL;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
@@ -50,6 +53,7 @@ public class MainController implements Initializable {
     private CipherManager cipherManager;
     private CredentialManager credentialManager;
     private boolean monitorRunning = false;
+    private boolean usingCredFile = true;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -70,6 +74,55 @@ public class MainController implements Initializable {
         queueList.setItems(queue);
         resultsList.setItems(results);
 
+        try {
+            File credFile = new File("secure_credentials");
+
+            if (!credFile.exists()) {
+                credFile.createNewFile();
+            }
+
+            do {
+                try {
+                    String masterPassword = masterPasswordPrompt();
+
+                    if (masterPassword.isEmpty()) {
+                        usingCredFile = false;
+                        break;
+                    } else {
+                        cipherManager = new CipherManager(credFile, masterPassword);
+                        credentialManager = new CredentialManager(cipherManager.decrypt());
+                        break;
+                    }
+                } catch (BadPaddingException e) {
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    alert.setTitle("Incorrect Password");
+                    alert.setHeaderText("Incorrect password provided.");
+
+                    ButtonType tryAgain = new ButtonType ("Try Again");
+                    ButtonType clearCredentials = new ButtonType("Clear Credentials");
+
+                    alert.getButtonTypes().clear();
+                    alert.getButtonTypes().addAll(tryAgain, clearCredentials);
+
+                    ((Button) alert.getDialogPane().lookupButton(tryAgain)).setDefaultButton(tryAgain == tryAgain);
+
+                    Optional<ButtonType> option = alert.showAndWait();
+
+                    if (option.get() == clearCredentials) {
+                        credFile.delete();
+                        credFile.createNewFile();
+                        break;
+                    } else {
+                        continue;
+                    }
+                }
+            } while(true);
+
+        } catch (IOException e) {
+            System.out.println("Error occurred while initializing cipher or credential manager: " + e.getMessage());
+        }
+
+        // Listeners
         // Disable/enable 'Begin' button based upon if there's text entered
         computersText.textProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue.length() > 0 && computerChecker != null) {
@@ -95,29 +148,13 @@ public class MainController implements Initializable {
             connectBtn.setDisable(false);
             Platform.runLater(() -> queueList.getSelectionModel().clearSelection());
         });
-
-        try {
-            File credFile = new File("secure_credentials");
-
-            if (!credFile.exists()) {
-                credFile.createNewFile();
-            }
-
-            // TODO: Change 'secretKey' to a master password provided by the user
-            cipherManager = new CipherManager(credFile, "test");
-            System.out.println(cipherManager.decrypt().toString());
-
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        }
     }
 
     public void setStage(Stage stage) {
         this.stage = stage;
     }
 
-    // Initialize a PowerShell session in the background while the application launches. Doing so in the
-    // foreground causes the app to take ~10 seconds to launch, whereas using a thread reduces that to ~1.
+    // Initialize a PowerShell session in the background while the application launches.
     public void initializePsSession() {
         PsSessionCreator sessionCreator = new PsSessionCreator();
         Thread psThread = new Thread(sessionCreator);
@@ -137,40 +174,7 @@ public class MainController implements Initializable {
         psThread.start();
     }
 
-    public void closePsSession() {
-        if (computerChecker != null) {
-            computerChecker.closeSession();
-        }
-    }
-
-    public void closeThreadPool() {
-        threadPool.shutdownNow();
-    }
-
-    public void storeCredentials() {
-        HashMap<String, Credential> credentials = new HashMap<>();
-        Credential credential_1 = new Credential("test", "sathercd3383-lab", "test", "lab machines", CredType.PATTERN);
-        Credential credential_2 = new Credential("another", "sathercd3383-srv", "test", "srv machines", CredType.OU);
-
-        credentials.put(credential_1.getCredName(), credential_1);
-        credentials.put(credential_2.getCredName(), credential_2);
-
-        try {
-            cipherManager.encrypt(credentials);
-        } catch (Exception e) {
-            System.out.println("An error occurred while encrypting credentials: " + e.getMessage());
-            System.out.println("Quitting without storing credentials.");
-        }
-    }
-
-    // TODO: Edit this to process the selected file and add the extracted devices to the monitor queue
-    @FXML private void openFileChooser() {
-        file = fileChooser.showOpenDialog(stage);
-        if (file != null) {
-            System.out.println(file.toString());
-        }
-    }
-
+    // Button actions
     @FXML private void addToMonitor() {
         NetworkWorker networkWorker;
         NetworkListener networkListener;
@@ -206,7 +210,6 @@ public class MainController implements Initializable {
         }
     }
 
-    // Button actions
     @FXML private void beginMonitoring() {
         monitorRunning = true;
         NetworkWorker networkWorker;
@@ -233,14 +236,26 @@ public class MainController implements Initializable {
     }
 
     // Menu Actions
+    // TODO: Edit this to process the selected file and add the extracted devices to the monitor queue
+    @FXML private void openFileChooser() {
+        file = fileChooser.showOpenDialog(stage);
+        if (file != null) {
+            System.out.println(file.toString());
+        }
+    }
+
     @FXML private void closeApplication() {
         stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
     }
 
     @FXML private void openCredentialManager() {
         Parent root;
+
         try {
-            root = FXMLLoader.load(getClass().getResource("../view/CredentialManager.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("../view/CredentialManager.fxml"));
+            root = loader.load();
+            CredentialManagerController controller = loader.getController();
+            controller.initData(credentialManager);
             Stage stage = new Stage();
             stage.setTitle("Credential Manager");
             stage.setScene(new Scene(root,600, 400));
@@ -248,8 +263,55 @@ public class MainController implements Initializable {
         } catch (IOException e) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Unable to open Credential Manager");
+            alert.setHeaderText("An error occurred while opening the Credential Manager.");
             alert.setContentText("Unable to open Credential Manager: " + e.getMessage());
             alert.show();
+        }
+    }
+
+    // Prompts
+    private String masterPasswordPrompt() {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("Input Master Password");
+        dialog.setHeaderText("The provided Master Password will be used to encrypt/decrypt your credentials.\n" +
+                "Leaving the prompt blank will result in your credentials not being stored.");
+        dialog.setContentText("Master Password:\n ");
+
+        Optional<String> password = dialog.showAndWait();
+        if (password.isPresent()) {
+            System.out.println(password.get());
+            return password.get();
+        } else {
+            return "";
+        }
+    }
+
+    // Clean up actions
+    public void closePsSession() {
+        if (computerChecker != null) {
+            computerChecker.closeSession();
+        }
+    }
+
+    public void closeThreadPool() {
+        threadPool.shutdownNow();
+    }
+
+    public void storeCredentials() {
+        HashMap<String, Credential> credentials = new HashMap<>();
+        Credential credential_1 = new Credential("test", "sathercd3383-lab", "test", "lab machines", CredType.PATTERN);
+        Credential credential_2 = new Credential("another", "sathercd3383-srv", "test", "srv machines", CredType.OU);
+
+        credentials.put(credential_1.getCredName(), credential_1);
+        credentials.put(credential_2.getCredName(), credential_2);
+
+        if (usingCredFile) {
+            try {
+                cipherManager.encrypt(credentials);
+            } catch (Exception e) {
+                System.out.println("An error occurred while encrypting credentials: " + e.getMessage());
+                System.out.println("Quitting without storing credentials.");
+            }
         }
     }
 }
