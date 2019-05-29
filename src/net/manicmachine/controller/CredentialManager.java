@@ -23,4 +23,34 @@ public class CredentialManager {
 
         return credentialList;
     }
+
+    protected void addCredential(Credential credential) {
+        credentials.put(credential.getCredName(), credential);
+    }
+
+    protected void deleteCredential(String credentialName) {
+        credentials.remove(credentialName);
+    }
+
+    protected void updateCredential(Credential originalCred, Credential updatedCred) {
+        if (originalCred.getCredName().equals(updatedCred.getCredName())) {
+            credentials.replace(originalCred.getCredName(), updatedCred);
+        } else {
+            credentials.remove(originalCred.getCredName());
+            credentials.put(updatedCred.getCredName(), updatedCred);
+        }
+    }
+
+    protected HashMap<String, Credential> getCredentials() {
+        return credentials;
+    }
+
+    protected Credential getCredential(String credName) {
+        return credentials.get(credName);
+    }
+
+    // Check stored credential patterns to determine which should be used
+    protected String getCorrectCred(String hostname, String distinguishedName) {
+        
+    }
 }

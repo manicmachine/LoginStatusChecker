@@ -298,16 +298,9 @@ public class MainController implements Initializable {
     }
 
     public void storeCredentials() {
-        HashMap<String, Credential> credentials = new HashMap<>();
-        Credential credential_1 = new Credential("test", "sathercd3383-lab", "test", "lab machines", CredType.PATTERN);
-        Credential credential_2 = new Credential("another", "sathercd3383-srv", "test", "srv machines", CredType.OU);
-
-        credentials.put(credential_1.getCredName(), credential_1);
-        credentials.put(credential_2.getCredName(), credential_2);
-
         if (usingCredFile) {
             try {
-                cipherManager.encrypt(credentials);
+                cipherManager.encrypt(credentialManager.getCredentials());
             } catch (Exception e) {
                 System.out.println("An error occurred while encrypting credentials: " + e.getMessage());
                 System.out.println("Quitting without storing credentials.");
